@@ -1,6 +1,6 @@
 {
   "name": "cep-extendscript-eval-promise",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An interface for CEP panels to run Adobe ExtendScript evals and files with agruments as promises with UMD wrapper for cross-compatability with AMD and node.js require.",
   "main": "./cep-extendscript-eval-promise.js",
   "dependencies": {
