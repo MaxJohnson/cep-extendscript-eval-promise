@@ -1,0 +1,16 @@
+{
+  "name": "cep-extendscript-eval-promise",
+  "version": "1.0.1",
+  "dependencies": {
+    "inherits": {
+      "version": "2.0.3",
+      "from": "inherits@2.0.3",
+      "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.3.tgz"
+    },
+    "util": {
+      "version": "0.11.1",
+      "from": "util@>=0.11.1 <0.12.0",
+      "resolved": "https://registry.npmjs.org/util/-/util-0.11.1.tgz"
+    }
+  }
+}
