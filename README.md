@@ -5,6 +5,8 @@ Trying to split the difference between too-basic and OMG-features-and-dependenci
 
 # Features
 - Run (eval) ExtendScript files **with arguments** as promises
+- Mix and match command strings with files into a single call via "evalConcat()"
+- Set ExtendScript's current working directory with "cwd()" (make script includes work again!)
 - Works with node.js require and AMD(probably)
 - Optional logger replacement (defaults to console.log)
 
@@ -110,6 +112,16 @@ Clone or download the repo and copy to your project?
      */
     evalConcat( jsxList, encapsulate );
 ```
+## cwd()
+```
+
+    /**
+    * Change the global current working directory for scripts (for relative paths and includes)
+    * @param {String} inDir String folder path set as the current working directory for scripts
+    * @return {promise} a promise that will resolve later with the result of the eval
+    */
+    cwd(pathToScriptFolder);
+```
 #Example
 ```
     /** contents of photoshop.jsx
@@ -121,7 +133,7 @@ Clone or download the repo and copy to your project?
     */
 
     var myFilePath = csInterface.getSystemPath(SystemPath.EXTENSION)+'/host/photoshop.jsx';
-    var params = { "log":"Sent alarms...", "message":"Alarming!" };
+    var params = { log:"Sent alarms...", message:"Alarming!" };
 
     var esp = require("cep-extendscript-eval-promise");
 
@@ -130,6 +142,17 @@ Clone or download the repo and copy to your project?
     esp.evalFileWithParams(myFilePath, params).then(
         function jsxResolve(data){
             console.info('The thing got did.');
+            esp.evalScript('alert("This is informative.");');
+        },
+        function jsxReject(data){
+            console.log(data);
+            console.error('Failed to do that extendscript thing.');
+        }
+    );
+
+    esp.evalConcat(['var params = { log:"Sent alarms...", message:"Alarming!" }; ', myFilePath, ' "this string will be passed back cause it is the last thing in the pipe";']).then(
+        function jsxResolve(data){
+            console.info(data);
             esp.evalScript('alert("This is informative.");');
         },
         function jsxReject(data){

@@ -218,18 +218,26 @@ function(global, factory) {
     /**
     * Wrapper for evalScript to jsx context as promise
     * @param {String} command String to send to JSX context for evalScript = function(script, callback)
+    * @param  {Boolean} [encapsulate] Adds encapsulation IIFE around eval
+    * @param  {Boolean} [strict] Sets $.strict before eval
     * @return {promise} a promise that will resolve later with the result of the eval
     */
-    ExtendScriptEvalPromise.evalScript = function(command, encapsulate) {
+    ExtendScriptEvalPromise.evalScript = function(command, encapsulate, strict) {
         return new Promise(function(resolve, reject) {
             // encapsulate in iife... or not
             encapsulate = (typeof encapsulate == "boolean")? encapsulate: _isEncapsulateEnabled;
+
             if(encapsulate == true) {
                 command = "(function (){\n" + command + "\n}() );";
             }
 
-            if(_canLog()){self.logger.log("EvalScript command");}
-            if(_canLog()){self.logger.log({"script":command,"encapsulate":encapsulate});}
+            // should set strict or not
+            // strict = (typeof strict == "boolean")? strict: _isStrict;
+            if(typeof strict == "boolean") {
+                command = "$.strict = " + strict.toString() + "; " + command;
+            }
+
+            if(_canLog()){self.logger.log("EvalScript command", {"script":command,"encapsulate":encapsulate});}
             function checkOutput( result )
             {
                 if( result === 'EvalScript error.') {
@@ -248,17 +256,18 @@ function(global, factory) {
      * Evaluate a file in Extendscript as a promise
      * @method
      * @param  {String} scriptPath  path of script file
-     * @param  {Boolean} encapsulate Adds encapsulation IIFE around eval
+     * @param  {Boolean} [encapsulate] Adds encapsulation IIFE around eval
+     * @param  {Boolean} [strict] Sets $.strict before eval
      * @return {Promise}             Promise for async script resolution
      */
-    ExtendScriptEvalPromise.evalFile = function(scriptPath, encapsulate) {
+    ExtendScriptEvalPromise.evalFile = function(scriptPath, encapsulate, strict) {
         if(_canLog()){self.logger.log("Sending JSX file ["+scriptPath+"] ");}
 
         return new Promise(function(resolve, reject) {
             Promise.resolve(_loadJSX( _getAbsolutePath(scriptPath) ))
             .then( function(data) {
                 //if(_canLog()){self.logger.log(data);}
-                resolve( self.evalScript(data, encapsulate) );
+                    resolve( self.evalScript(data, encapsulate, strict) );
             })
             .catch(reject);
         });
@@ -275,10 +284,11 @@ function(global, factory) {
      *                             "text":"Message"
      *                          }
      * @param  {String} paramsVarName optional name for parameter variable definition
-     * @param  {Boolean} encapsulate Adds encapsulation IIFE around eval
+     * @param  {Boolean} [encapsulate] Adds encapsulation IIFE around eval
+     * @param  {Boolean} [strict] Sets $.strict before eval
      * @return {Promise}             Promise for async script resolution
      */
-    ExtendScriptEvalPromise.evalFileWithParams = function(scriptPath, params, paramsVarName, encapsulate) {
+    ExtendScriptEvalPromise.evalFileWithParams = function(scriptPath, params, paramsVarName, encapsulate, strict) {
         if (params) {
             try {
                 paramsVarName = paramsVarName || self.paramsVarName;
@@ -288,7 +298,7 @@ function(global, factory) {
 
                 return new Promise(function(resolve, reject) {
                     var output = "";
-                    self.evalConcat( [ newJSX, _getAbsolutePath(scriptPath) ], encapsulate )
+                        self.evalConcat( [ newJSX, _getAbsolutePath(scriptPath) ], encapsulate, strict )
                     .then( function(result) {
                         // clear params so they aren't persistent
                         self.evalScript(paramsVarName + " = undefined;");
@@ -311,10 +321,11 @@ function(global, factory) {
      * Concatenate files and javascript strings into a single eval in Extendscript as a promise
      * @method
      * @param  {String Array} jsxlist  any combo of files or javascript strings
-     * @param  {Boolean} encapsulate Adds encapsulation IIFE around eval
+     * @param  {Boolean} [encapsulate] Adds encapsulation IIFE around eval
+     * @param  {Boolean} [strict] Sets $.strict before eval
      * @return {Promise}             Promise for async script resolution
      */
-    ExtendScriptEvalPromise.evalConcat = function( jsxList, encapsulate ) {
+    ExtendScriptEvalPromise.evalConcat = function( jsxList, encapsulate, strict ) {
         return new Promise(function(resolve, reject) {
             // error check and sanitize input
             if( jsxList instanceof Array == false || jsxList.length === 0) {
@@ -337,10 +348,39 @@ function(global, factory) {
                 newJSX = jsxStrings.join("\n ;\n");
                 // if(_canLog()){self.logger.log("Sending JSX file [", scriptPath, "] with params: \nvar " + paramsVarName + " = ", jsxStrings[1]);}
                 // if(_canLog()){self.logger.log(newJSX);}
-                resolve( self.evalScript(newJSX, encapsulate) );
+                    resolve( self.evalScript(newJSX, encapsulate, strict) );
             })
             .catch(reject);
         });
+    };
+
+
+    /**
+    * Change the global current working directory for scripts (for relative paths and includes)
+    * @param {String} inDir String folder path set as the current working directory for scripts
+    * @return {promise} a promise that will resolve later with the result of the eval
+    */
+    ExtendScriptEvalPromise.cwd = function(inDir) {
+        if(_canLog()){self.logger.log("Changing ExtendScript current working directory (Folder.current) to " + inDir);}
+        var command = 'Folder.current = new Folder("' + inDir + '");';
+        return self.evalScript(command);
+    };
+
+
+    /**
+     * Toggle for $.strict mode in the extenscript context
+     * @method
+     * @param  {Boolean} doStrict Flag to enable. Default is true
+     * @return {promise} a promise that will resolve later with the result of the eval
+     */
+    ExtendScriptEvalPromise.setStrict = function(doStrict){
+        var makeStrict = (doStrict !== false);// default true
+        if(_canLog()){
+            self.logger.log( "Setting $.strict = " + makeStrict.toString() + " in ExtendScript context.");
+        }
+
+        // set in context
+        return self.evalScript('$.strict = ' + makeStrict + ';');
     };
 
 
